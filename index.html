@@ -2841,8 +2841,10 @@ function genSteps(algo,a){
    Each non-array world gets one interactive signature mini-game that teaches a
    core operation, then the boss + quiz carry the rest. */
 const GENERIC_MISSIONS={
- 2:[{key:'g2a',icon:'🔗',title:'Wire the Nodes',teaches:'Connect nodes in order via pointers.'},
-    {key:'g2b',icon:'🔁',title:'Cycle Hunt',teaches:'Spot the node whose pointer loops back.'}],
+ 2:[{key:'g2a',icon:'🔗',title:'Wire the Nodes',teaches:'Click nodes left-to-right to chain pointers together.'},
+    {key:'g2b',icon:'🔁',title:'Cycle Hunt',teaches:'Find which node creates the cycle in the list.'},
+    {key:'g2c',icon:'🔄',title:'Reverse the Chain',teaches:'Reverse the linked list by re-wiring pointers one by one.'},
+    {key:'g2d',icon:'🗡️',title:'Delete the Node',teaches:'Remove a node by re-pointing its predecessor.'}],
  3:[{key:'g3a',icon:'🪨',title:'Falling Stones',teaches:'Push & pop in LIFO order.'},
     {key:'g3b',icon:'🧮',title:'Postfix Forge',teaches:'Evaluate a postfix expression with a stack.'}],
  4:[{key:'g4a',icon:'🚦',title:'Traffic Control',teaches:'Serve cars FIFO at the junction.'},
@@ -2853,12 +2855,212 @@ const GENERIC_MISSIONS={
     {key:'g6b',icon:'🕳️',title:'DFS Dive',teaches:'Plunge deep before backtracking.'}],
 };
 function genericMission(id,key){
+  // World 2 — Linked List Forest interactive games
+  if(key==='g2a')return wireNodes(id,key);
+  if(key==='g2b')return cycleHunt(id,key);
+  if(key==='g2c')return reverseList(id,key);
+  if(key==='g2d')return deleteNode(id,key);
+  // World 3 — Stack
   if(key==='g3a')return stackStones(id,key);
-  if(key==='g5a')return growBST(id,key);
+  // World 4 — Queue
   if(key==='g4a')return trafficFIFO(id,key);
-  // default: a focused concept challenge (3 scenario questions) for the rest
+  // World 5 — BST
+  if(key==='g5a')return growBST(id,key);
+  // default: concept quiz challenge for remaining missions
   conceptChallenge(id,key);
 }
+/* ======================= LINKED LIST FOREST GAMES (World 2) ======================= */
+
+/* Game 1 — Wire the Nodes: click nodes in sequence to chain pointers */
+function wireNodes(id,key){
+  const vals = randArr(5,9);
+  let wired = 0;
+  arenaShell('Wire the Nodes', 'Click each node left-to-right to chain the next pointer.',`
+    <div class="prompt" id="pr">Connect node <b>${vals[0]}</b> → <b>${vals[1]}</b> by clicking them in order.</div>
+    <div id="chain" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;margin:16px 0"></div>
+    <div class="feedback" id="fb"></div>`);
+  function draw(){
+    const chain = document.getElementById('chain');
+    chain.innerHTML = '';
+    vals.forEach((v,i)=>{
+      const isWired = i < wired;
+      const isNext  = i === wired;
+      const cell = document.createElement('div');
+      cell.style.cssText = 'display:flex;align-items:center;gap:4px';
+      const box = document.createElement('div');
+      box.className = 'acell';
+      box.innerHTML = `<div class="box" style="border-color:${isWired?'var(--green)':isNext?'var(--gold)':'var(--line)'};cursor:${isNext?'pointer':'default'};font-size:15px">${v}</div>`;
+      if(isNext) box.onclick = ()=>{ wired++;
+        highlightCodeLine(3);
+        const fb=document.getElementById('fb');
+        fb.className='feedback win';
+        if(wired < vals.length){
+          fb.textContent=`✓ Pointer set: ${vals[wired-1]}.next → ${vals[wired]}. A pointer stores the memory address of the next node.`;
+          document.getElementById('pr').innerHTML=`Connect <b>${vals[wired-1]}</b> → <b>${vals[wired]}</b>`;
+        } else {
+          fb.textContent='✓ Last node.next = null. Chain complete! A linked list ends when next pointer is null.';
+        }
+        draw();
+        if(wired>=vals.length) setTimeout(()=>clearMission(id,key,80,40),1500);
+      };
+      cell.appendChild(box);
+      if(i<vals.length-1){
+        const arr=document.createElement('span');
+        arr.innerHTML = isWired ? '<span style="color:var(--green);font-size:18px">→</span>' : '<span style="color:var(--dim);font-size:18px">·→·</span>';
+        cell.appendChild(arr);
+      }
+      chain.appendChild(cell);
+    });
+  }
+  draw();
+}
+
+/* Game 2 — Cycle Hunt: identify the node that forms the cycle */
+function cycleHunt(id,key){
+  const vals = randArr(5,9);
+  const cycleIdx = 1 + Math.floor(Math.random()*(vals.length-2)); // never first or last
+  let attempts = 0;
+  arenaShell('Cycle Hunt','One node\'s next pointer loops back and creates a cycle. Click it!',`
+    <div class="prompt">Use Floyd's tortoise & hare concept: find which node causes the loop.</div>
+    <div id="cycle-chain" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;margin:16px 0"></div>
+    <div style="font-family:var(--mono);font-size:12px;color:var(--dim);text-align:center;margin-bottom:8px">The last node's next wraps back to one of the middle nodes (forming ♻️ a cycle)</div>
+    <div class="feedback" id="fb"></div>`);
+  function draw(){
+    const chain = document.getElementById('cycle-chain');
+    chain.innerHTML = '';
+    vals.forEach((v,i)=>{
+      const cell = document.createElement('div');
+      cell.style.cssText = 'display:flex;align-items:center;gap:4px';
+      const box = document.createElement('div');
+      box.className = 'acell';
+      box.innerHTML = `<div class="box" style="cursor:pointer;font-size:15px">${v}<br><span style="font-size:10px;color:var(--dim)">[${i}]</span></div>`;
+      box.onclick = ()=>{
+        attempts++;
+        if(i===cycleIdx){
+          highlightCodeLine(6);
+          document.getElementById('fb').className='feedback win';
+          document.getElementById('fb').innerHTML=`✓ Correct! Node <b>${vals[cycleIdx]}</b> (index ${cycleIdx}) is where the tail's next points back, creating a cycle. Floyd's algorithm detects this in O(n) with O(1) space.`;
+          box.querySelector('div').style.borderColor='var(--green)';
+          setTimeout(()=>clearMission(id,key,85,42),1800);
+        } else {
+          shakeScreen();
+          document.getElementById('fb').className='feedback lose';
+          document.getElementById('fb').textContent=`✗ Not this one. Hint: The cycle entry is neither the head nor the tail. Attempts: ${attempts}.`;
+        }
+      };
+      cell.appendChild(box);
+      if(i<vals.length-1){
+        const arr=document.createElement('span');
+        arr.innerHTML='<span style="color:var(--dim);font-size:18px">→</span>';
+        cell.appendChild(arr);
+      } else {
+        const loop=document.createElement('span');
+        loop.innerHTML=`<span style="color:var(--pink);font-size:13px;margin-left:6px">↩ back to [${cycleIdx}]</span>`;
+        cell.appendChild(loop);
+      }
+      chain.appendChild(cell);
+    });
+  }
+  draw();
+}
+
+/* Game 3 — Reverse the Chain: click Reverse repeatedly to flip pointers step by step */
+function reverseList(id,key){
+  let arr = randArr(5,9);
+  let steps = 0;
+  const total = arr.length;
+  let reversed = [];
+  let remaining = [...arr];
+  arenaShell('Reverse the Chain','Re-wire pointers to reverse the linked list one node at a time.',`
+    <div class="prompt" id="pr">Original list — click Reverse Step to flip one node's pointer.</div>
+    <div id="orig-chain" style="display:flex;align-items:center;gap:6px;justify-content:center;margin:10px 0"></div>
+    <div style="text-align:center;color:var(--dim);font-size:12px;margin:4px 0">↕ reversing ↕</div>
+    <div id="rev-chain" style="display:flex;align-items:center;gap:6px;justify-content:center;margin:10px 0"></div>
+    <div class="controls"><button class="btn sm" id="rev-btn">🔄 Reverse Step</button></div>
+    <div class="feedback" id="fb"></div>`);
+  function draw(){
+    // Original (shrinking)
+    const orig = document.getElementById('orig-chain');
+    orig.innerHTML = remaining.map((v,i)=>
+      `<div class="acell"><div class="box" style="border-color:var(--blue)">${v}</div></div>${i<remaining.length-1?'<span style="color:var(--dim)">→</span>':'<span style="color:var(--dim)">→null</span>'}`
+    ).join('');
+    // Reversed (growing)
+    const rev = document.getElementById('rev-chain');
+    rev.innerHTML = reversed.length === 0
+      ? '<span class="dim">empty</span>'
+      : reversed.map((v,i)=>
+          `<div class="acell"><div class="box" style="border-color:var(--green)">${v}</div></div>${i<reversed.length-1?'<span style="color:var(--green)">→</span>':'<span style="color:var(--dim)">→null</span>'}`
+        ).join('');
+  }
+  draw();
+  document.getElementById('rev-btn').onclick = ()=>{
+    if(remaining.length===0){return;}
+    highlightCodeLine(3);
+    const node = remaining.shift();
+    reversed.unshift(node);
+    steps++;
+    draw();
+    const fb = document.getElementById('fb');
+    fb.className = 'feedback win';
+    if(remaining.length>0){
+      fb.textContent = `✓ Moved node ${node} to front of reversed list. prev pointer now points backward. Steps: ${steps}/${total}.`;
+      document.getElementById('pr').innerHTML = `Reversing… <b>${steps}</b> of ${total} nodes re-wired.`;
+    } else {
+      fb.textContent = `✓ All ${total} pointers reversed! prev→current→next became null←…←head. Time complexity: O(n).`;
+      document.getElementById('rev-btn').disabled = true;
+      setTimeout(()=>clearMission(id,key,90,45),1800);
+    }
+  };
+}
+
+/* Game 4 — Delete the Node: choose the correct predecessor node to fix the pointer */
+function deleteNode(id,key){
+  const vals = randArr(5,9);
+  const delIdx = 1 + Math.floor(Math.random()*(vals.length-2)); // never head or tail
+  let attempts = 0;
+  arenaShell('Delete the Node',`Remove node <b>${vals[delIdx]}</b> from the list by clicking its predecessor.`,`
+    <div class="prompt">To delete node <b style="color:var(--pink)">${vals[delIdx]}</b>, click its <b>predecessor</b> (the node just before it) to fix the pointer.</div>
+    <div id="del-chain" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;margin:16px 0"></div>
+    <div style="font-family:var(--mono);font-size:12px;color:var(--dim);text-align:center;margin-bottom:8px">Rule: predecessor.next = target.next (skip the deleted node)</div>
+    <div class="feedback" id="fb"></div>`);
+  function draw(deleted){
+    const chain = document.getElementById('del-chain');
+    chain.innerHTML = '';
+    vals.forEach((v,i)=>{
+      if(deleted && i===delIdx) return; // skip deleted node
+      const cell = document.createElement('div');
+      cell.style.cssText='display:flex;align-items:center;gap:4px';
+      const box = document.createElement('div');
+      box.className='acell';
+      const isTarget = i===delIdx;
+      const isPred   = i===delIdx-1;
+      box.innerHTML=`<div class="box" style="border-color:${isTarget?'var(--pink)':isPred?'var(--gold)':'var(--line)'};cursor:${deleted?'default':isPred?'pointer':'not-allowed'};font-size:15px">${v}${isTarget?'<br><span style="font-size:9px;color:var(--pink)">DELETE</span>':''}</div>`;
+      if(!deleted) box.onclick = ()=>{
+        attempts++;
+        if(i===delIdx-1){
+          highlightCodeLine(4);
+          document.getElementById('fb').className='feedback win';
+          document.getElementById('fb').innerHTML=`✓ Correct! node[${i}].next = node[${delIdx+1}] — we skipped node <b>${vals[delIdx]}</b>. The node is now unreachable (garbage collected). O(1) if predecessor is known.`;
+          draw(true);
+          setTimeout(()=>clearMission(id,key,80,40),1800);
+        } else {
+          shakeScreen();
+          document.getElementById('fb').className='feedback lose';
+          document.getElementById('fb').textContent=`✗ Wrong node. To delete node at index ${delIdx}, you must change the pointer of its predecessor at index ${delIdx-1}. Attempts: ${attempts}.`;
+        }
+      };
+      cell.appendChild(box);
+      if(i<vals.length-1 && !(deleted && i===delIdx-1)){
+        const arrow=document.createElement('span');
+        arrow.innerHTML='<span style="color:var(--dim);font-size:18px">→</span>';
+        cell.appendChild(arrow);
+      }
+      chain.appendChild(cell);
+    });
+  }
+  draw(false);
+}
+
 /* Stack falling stones */
 function stackStones(id,key){
   const seq=randArr(5,9); let stack=[], idx=0, expectPop=[...seq].reverse();
