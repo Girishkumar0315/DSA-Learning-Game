@@ -2917,9 +2917,13 @@ function deleteNode(head, target) {
 }`}
   ],
  3:[{key:'g3a',icon:'🪨',title:'Falling Stones',teaches:'Push & pop in LIFO order.'},
-    {key:'g3b',icon:'🧮',title:'Postfix Forge',teaches:'Evaluate a postfix expression with a stack.'}],
+    {key:'g3b',icon:'🧮',title:'Postfix Forge',teaches:'Evaluate postfix expression step by step.'},
+    {key:'g3c',icon:'⬇️',title:'Stack Push Panic',teaches:'Push numbers onto the stack in the correct LIFO order.'},
+    {key:'g3d',icon:'⬆️',title:'Stack Pop Blitz',teaches:'Pop elements and predict the correct LIFO output.'}],
  4:[{key:'g4a',icon:'🚦',title:'Traffic Control',teaches:'Serve cars FIFO at the junction.'},
-    {key:'g4b',icon:'⭐',title:'Priority Dispatch',teaches:'Highest priority leaves first.'}],
+    {key:'g4b',icon:'⭐',title:'Priority Dispatch',teaches:'Highest priority leaves first.'},
+    {key:'g4c',icon:'📥',title:'Enqueue Parade',teaches:'Add items to the rear of the queue one by one.'},
+    {key:'g4d',icon:'📤',title:'Dequeue Rush',teaches:'Remove items from the front — pure FIFO order.'}],
  5:[{key:'g5a',icon:'🌱',title:'Grow the BST',teaches:'Insert values into a binary search tree.'},
     {key:'g5b',icon:'🚶',title:'Inorder Walk',teaches:'Traverse a BST in sorted order.'}],
  6:[{key:'g6a',icon:'🌊',title:'BFS Wave',teaches:'Explore the galaxy level by level.'},
@@ -2934,9 +2938,13 @@ function genericMission(id,key){
   // World 3 — Stack Volcano
   if(key==='g3a')return stackStones(id,key);
   if(key==='g3b')return postfixForge(id,key);
+  if(key==='g3c')return stackPushPanic(id,key);
+  if(key==='g3d')return stackPopBlitz(id,key);
   // World 4 — Queue City
   if(key==='g4a')return trafficFIFO(id,key);
   if(key==='g4b')return priorityDispatch(id,key);
+  if(key==='g4c')return enqueueParade(id,key);
+  if(key==='g4d')return dequeueRush(id,key);
   // World 5 — Tree Kingdom
   if(key==='g5a')return growBST(id,key);
   if(key==='g5b')return inorderWalk(id,key);
@@ -3136,6 +3144,247 @@ function deleteNode(id,key){
     });
   }
   draw(false);
+}
+
+/* ======================= STACK — PUSH PANIC & POP BLITZ ======================= */
+
+/* g3c — Stack Push Panic: push random numbers, type the top value each time */
+function stackPushPanic(id,key){
+  const seq = randArr(6,9);
+  let stack=[], idx=0, mistakes=0;
+  arenaShell('Stack Push Panic','Push each number onto the stack and answer: what is the TOP element now?',`
+    <div class="prompt" id="pr">Push <b id="nv" style="color:var(--gold);font-size:22px">${seq[0]}</b> onto the stack — then type the new top.</div>
+    <div style="display:flex;align-items:flex-end;gap:20px;justify-content:center;margin:12px 0">
+      <div style="text-align:center">
+        <div class="eyebrow" style="font-size:10px">Remaining</div>
+        <div id="rem" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:6px"></div>
+      </div>
+      <div style="text-align:center">
+        <div class="eyebrow" style="font-size:10px">Stack (top ↑)</div>
+        <div id="stk" style="display:flex;flex-direction:column-reverse;align-items:center;gap:4px;min-height:160px;justify-content:flex-start;margin-top:6px"></div>
+      </div>
+    </div>
+    <div class="controls" style="gap:8px">
+      <input id="ans" type="number" placeholder="Top value?" style="padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,0.05);color:var(--txt);font-family:var(--mono);font-size:16px;width:120px;text-align:center">
+      <button class="btn sm green" id="pushbtn">⬇️ Push &amp; Check</button>
+    </div>
+    <div class="feedback" id="fb"></div>`);
+  function draw(){
+    document.getElementById('rem').innerHTML = seq.slice(idx).map((v,i)=>
+      `<div class="acell"><div class="box" style="border-color:${i===0?'var(--gold)':'var(--line)'}">${v}</div></div>`).join('');
+    document.getElementById('stk').innerHTML = stack.length
+      ? stack.map((v,i)=>`<div class="acell"><div class="box" style="border-color:${i===stack.length-1?'var(--green)':'var(--line)'}">${v}${i===stack.length-1?' 👈top':''}</div></div>`).join('')
+      : '<span class="dim">empty</span>';
+  }
+  draw();
+  document.getElementById('pushbtn').onclick=()=>{
+    if(idx>=seq.length) return;
+    const ans=parseInt(document.getElementById('ans').value);
+    const val=seq[idx];
+    const fb=document.getElementById('fb');
+    if(isNaN(ans)){fb.className='feedback lose';fb.textContent='✗ Enter the top value before pushing!';return;}
+    if(ans===val){
+      highlightCodeLine(2);
+      stack.push(val); idx++;
+      draw();
+      fb.className='feedback win';
+      fb.textContent=`✓ Correct! Pushed ${val}. Top is now ${stack[stack.length-1]}. LIFO — last pushed is always on top.`;
+      document.getElementById('ans').value='';
+      if(idx>=seq.length){
+        document.getElementById('pushbtn').disabled=true;
+        setTimeout(()=>{fb.textContent=`🏆 Stack full! Final: [${stack.join(' ← ')}] with top=${stack[stack.length-1]}.`;
+          setTimeout(()=>clearMission(id,key,85,42),1400);},600);
+      } else {
+        document.getElementById('pr').innerHTML=`Push <b id="nv" style="color:var(--gold);font-size:22px">${seq[idx]}</b> — what will the new top be?`;
+      }
+    } else {
+      mistakes++; shakeScreen();
+      fb.className='feedback lose';
+      fb.textContent=`✗ Wrong! When you push ${val}, it becomes the new top. Stack top = most recently pushed. Mistakes: ${mistakes}.`;
+    }
+  };
+  document.getElementById('ans').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('pushbtn').click();});
+}
+
+/* g3d — Stack Pop Blitz: watch the stack, predict what comes out when popped */
+function stackPopBlitz(id,key){
+  const seq = randArr(5,9);
+  let stack=[...seq], mistakes=0;
+  arenaShell('Stack Pop Blitz','Predict the correct pop order — which element comes out NEXT?',`
+    <div class="prompt">The stack is already built. Pop it — LIFO: <b style="color:var(--gold)">Last In, First Out</b>.</div>
+    <div style="display:flex;gap:24px;align-items:flex-start;justify-content:center;margin:12px 0">
+      <div style="text-align:center">
+        <div class="eyebrow" style="font-size:10px">Stack (top ↑)</div>
+        <div id="stk2" style="display:flex;flex-direction:column-reverse;align-items:center;gap:4px;min-height:140px;justify-content:flex-start;margin-top:6px"></div>
+      </div>
+      <div style="text-align:center">
+        <div class="eyebrow" style="font-size:10px">Popped Out</div>
+        <div id="popped" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:6px;min-height:44px"></div>
+      </div>
+    </div>
+    <div style="font-family:var(--mono);font-size:13px;text-align:center;color:var(--dim);margin-bottom:8px">Click the correct element that pops out next:</div>
+    <div id="choices" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:8px"></div>
+    <div class="feedback" id="fb"></div>`);
+  let popped=[];
+  function draw(){
+    document.getElementById('stk2').innerHTML = stack.length
+      ? stack.map((v,i)=>`<div class="acell"><div class="box" style="border-color:${i===stack.length-1?'var(--gold)':'var(--line)'}">${v}${i===stack.length-1?' ←top':''}</div></div>`).join('')
+      : '<span class="dim">empty</span>';
+    document.getElementById('popped').innerHTML = popped.length
+      ? popped.map(v=>`<div class="acell"><div class="box" style="border-color:var(--green)">${v}</div></div>`).join('')
+      : '<span class="dim">—</span>';
+    // Build choices: correct answer + 2 distractors
+    if(stack.length>0){
+      const correct=stack[stack.length-1];
+      const wrong=[...stack.slice(0,-1)].sort(()=>Math.random()-0.5).slice(0,2);
+      const opts=[correct,...wrong].sort(()=>Math.random()-0.5);
+      document.getElementById('choices').innerHTML='';
+      opts.forEach(o=>{
+        const b=document.createElement('button');
+        b.className='btn sm';
+        b.textContent=o;
+        b.onclick=()=>{
+          if(o===correct){
+            highlightCodeLine(4);
+            popped.push(stack.pop());
+            draw();
+            document.getElementById('fb').className='feedback win';
+            document.getElementById('fb').textContent=`✓ Correct! ${o} was on top. LIFO means the LAST pushed element is the FIRST to pop.`;
+            if(stack.length===0){
+              setTimeout(()=>{
+                document.getElementById('fb').textContent=`🏆 Perfect! Full pop order: ${popped.join(' → ')}. Stack is now empty.`;
+                setTimeout(()=>clearMission(id,key,90,45),1400);
+              },600);
+            }
+          } else {
+            mistakes++; shakeScreen();
+            document.getElementById('fb').className='feedback lose';
+            document.getElementById('fb').textContent=`✗ Wrong! The TOP of the stack is ${correct}, not ${o}. Think LIFO — top = most recent push. Mistakes: ${mistakes}.`;
+          }
+        };
+        document.getElementById('choices').appendChild(b);
+      });
+    }
+  }
+  draw();
+}
+
+/* ======================= QUEUE — ENQUEUE PARADE & DEQUEUE RUSH ======================= */
+
+/* g4c — Enqueue Parade: click the "Enqueue" button to add items to the rear one by one */
+function enqueueParade(id,key){
+  const items=['🍕','🎸','📚','🎯','🚀','🌟'];
+  const labels=['Pizza','Guitar','Book','Target','Rocket','Star'];
+  let queue=[], idx=0;
+  arenaShell('Enqueue Parade','Add each item to the REAR of the queue — that is what Enqueue means!',`
+    <div class="prompt" id="pr">Enqueue: <b id="next-item" style="font-size:22px">${items[0]}</b> <span style="color:var(--dim)">${labels[0]}</span></div>
+    <div style="text-align:center;margin:10px 0">
+      <div class="eyebrow" style="font-size:10px;margin-bottom:6px">Queue (front ← rear)</div>
+      <div id="q-row" style="display:flex;align-items:center;gap:4px;justify-content:center;flex-wrap:wrap;min-height:54px"></div>
+    </div>
+    <div style="font-family:var(--mono);font-size:11px;color:var(--dim);text-align:center;margin-bottom:8px">New items always join at the <b style="color:var(--gold)">REAR</b> (right side)</div>
+    <div class="controls"><button class="btn sm green" id="enq-btn">📥 Enqueue Item</button></div>
+    <div class="feedback" id="fb"></div>`);
+  function draw(){
+    const row=document.getElementById('q-row');
+    if(queue.length===0){row.innerHTML='<span class="dim">empty queue</span>';return;}
+    row.innerHTML=queue.map((it,i)=>`
+      <div style="display:flex;align-items:center;gap:4px">
+        ${i===0?'<span style="font-size:10px;color:var(--blue);font-family:var(--mono)">front→</span>':''}
+        <div class="acell"><div class="box" style="font-size:18px;border-color:${i===queue.length-1?'var(--gold)':'var(--green)'}">${it.icon}</div></div>
+        ${i===queue.length-1?'<span style="font-size:10px;color:var(--gold);font-family:var(--mono)">←rear</span>':''}
+        ${i<queue.length-1?'<span style="color:var(--dim)">←</span>':''}
+      </div>`).join('');
+  }
+  draw();
+  document.getElementById('enq-btn').onclick=()=>{
+    if(idx>=items.length) return;
+    const it={icon:items[idx],label:labels[idx]};
+    highlightCodeLine(4);
+    queue.push(it); idx++;
+    draw();
+    const fb=document.getElementById('fb');
+    fb.className='feedback win';
+    fb.textContent=`✓ Enqueued ${it.icon} ${it.label} at the REAR. Queue size: ${queue.length}. Front: ${queue[0].icon}, Rear: ${queue[queue.length-1].icon}.`;
+    if(idx<items.length){
+      document.getElementById('pr').innerHTML=`Enqueue: <b id="next-item" style="font-size:22px">${items[idx]}</b> <span style="color:var(--dim)">${labels[idx]}</span>`;
+    } else {
+      document.getElementById('enq-btn').disabled=true;
+      setTimeout(()=>{
+        fb.textContent=`🏆 Queue full! Order (front→rear): ${queue.map(x=>x.icon).join(' ← ')}. Enqueue always adds to the rear — O(1)!`;
+        setTimeout(()=>clearMission(id,key,85,42),1500);
+      },600);
+    }
+  };
+}
+
+/* g4d — Dequeue Rush: items are in a queue, click front item repeatedly to dequeue FIFO */
+function dequeueRush(id,key){
+  const items=[
+    {icon:'🥇',label:'Gold'},
+    {icon:'🥈',label:'Silver'},
+    {icon:'🥉',label:'Bronze'},
+    {icon:'🎖️',label:'Medal'},
+    {icon:'🏅',label:'Award'}
+  ];
+  let queue=[...items], dequeued=[], mistakes=0;
+  arenaShell('Dequeue Rush','Remove items from the FRONT of the queue — that is Dequeue (FIFO)!',`
+    <div class="prompt">Click the <b style="color:var(--gold)">FRONT</b> item to dequeue it. FIFO = First In, First Out.</div>
+    <div style="text-align:center;margin:10px 0">
+      <div class="eyebrow" style="font-size:10px;margin-bottom:6px">Queue — click the front item!</div>
+      <div id="dq-row" style="display:flex;align-items:center;gap:4px;justify-content:center;flex-wrap:wrap;min-height:54px"></div>
+    </div>
+    <div style="text-align:center;margin:8px 0">
+      <div class="eyebrow" style="font-size:10px;margin-bottom:4px">Dequeued (exited)</div>
+      <div id="exited" style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;min-height:44px"></div>
+    </div>
+    <div class="feedback" id="fb"></div>`);
+  function draw(){
+    // Queue row
+    const row=document.getElementById('dq-row');
+    if(queue.length===0){row.innerHTML='<span class="dim">queue empty</span>';}
+    else{
+      row.innerHTML=queue.map((it,i)=>{
+        const isFront=i===0;
+        return `<div style="display:flex;align-items:center;gap:4px">
+          ${isFront?'<span style="font-size:10px;color:var(--blue);font-family:var(--mono)">front→</span>':''}
+          <div class="acell" style="cursor:${isFront?'pointer':'not-allowed'}" onclick="dqClick(${i})">
+            <div class="box" style="font-size:22px;border-color:${isFront?'var(--gold)':'var(--line)'};background:${isFront?'rgba(255,215,0,0.08)':'transparent'}">
+              ${it.icon}${isFront?'<br><span style="font-size:9px;color:var(--gold)">click!</span>':''}
+            </div>
+          </div>
+          ${i===queue.length-1?'<span style="font-size:10px;color:var(--dim);font-family:var(--mono)">←rear</span>':''}
+          ${i<queue.length-1?'<span style="color:var(--dim)">←</span>':''}
+        </div>`;
+      }).join('');
+    }
+    // Exited row
+    document.getElementById('exited').innerHTML=dequeued.length
+      ? dequeued.map(it=>`<div class="acell"><div class="box" style="font-size:18px;border-color:var(--green)">${it.icon}</div></div>`).join('')
+      : '<span class="dim">—</span>';
+  }
+  window.dqClick=function(i){
+    const fb=document.getElementById('fb');
+    if(i===0){
+      highlightCodeLine(4);
+      const removed=queue.shift();
+      dequeued.push(removed);
+      draw();
+      fb.className='feedback win';
+      fb.textContent=`✓ Dequeued ${removed.icon} ${removed.label} from the FRONT. FIFO ensures the first item enqueued is always first out. O(1) operation.`;
+      if(queue.length===0){
+        setTimeout(()=>{
+          fb.textContent=`🏆 Queue empty! Dequeue order: ${dequeued.map(x=>x.icon).join(' → ')}. Perfect FIFO — same order as enqueue!`;
+          setTimeout(()=>clearMission(id,key,90,45),1500);
+        },600);
+      }
+    } else {
+      mistakes++; shakeScreen();
+      fb.className='feedback lose';
+      fb.textContent=`✗ Wrong! Only the FRONT item can be dequeued. FIFO rule: First In, First Out — no skipping. Mistakes: ${mistakes}.`;
+    }
+  };
+  draw();
 }
 
 /* Stack falling stones */
