@@ -1463,6 +1463,7 @@ function save(){
       saveAccounts(accounts);
     }
   }
+  if(window.broadcastScore) window.broadcastScore();
 }
 function load(){try{return JSON.parse(localStorage.getItem('dsa_legends_save'));}catch(e){return null;}}
 function reset(){if(confirm('Erase your legend and start over?')){S=freshState();save();location.reload();}}
@@ -2402,8 +2403,8 @@ function missionsHTML(id){
     const cleared=w.missions[m.key];
     const prevOk=i===0||w.missions[ms[i-1].key];
     const locked=!prevOk;
-    // Build type badge + demo code block for World 2 (Linked List Forest)
-    const typeBadge = m.listType ? `<div style="font-family:var(--mono);font-size:10px;color:var(--blue);background:rgba(45,212,255,0.08);border:1px solid rgba(45,212,255,0.2);border-radius:4px;padding:2px 7px;display:inline-block;margin-bottom:6px;letter-spacing:0.5px">🔗 ${m.listType}</div>` : '';
+    // Build type badge + demo code block for any mission
+    const typeBadge = m.listType ? `<div style="font-family:var(--mono);font-size:10px;color:var(--blue);background:rgba(45,212,255,0.08);border:1px solid rgba(45,212,255,0.2);border-radius:4px;padding:2px 7px;display:inline-block;margin-bottom:6px;letter-spacing:0.5px">⚡ ${m.listType}</div>` : '';
     const codeBlock = m.demoCode && !locked ? `<details style="margin-top:8px;text-align:left" onclick="event.stopPropagation()">
       <summary style="cursor:pointer;font-family:var(--mono);font-size:11px;color:var(--gold);outline:none">📄 Show Demo Code</summary>
       <pre style="margin:6px 0 0;padding:10px;background:rgba(0,0,0,0.4);border-radius:6px;font-size:11px;color:#b5f3b5;overflow-x:auto;text-align:left;line-height:1.5;border:1px solid rgba(255,255,255,0.06)">${m.demoCode.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
@@ -2421,13 +2422,67 @@ function missionsHTML(id){
 /* ======================= ARRAY MISSIONS (World 1 showcase) ======================= */
 function randArr(n,max=9){return Array.from({length:n},()=>Math.floor(Math.random()*max)+1);}
 const ARRAY_MISSIONS=[
- {key:'idx',icon:'💎',title:'Crystal Collection',teaches:'Indexing — grab the crystal at the exact index.'},
- {key:'trav',icon:'🚶',title:'Traversal Adventure',teaches:'Visit each cell left to right, in order.'},
- {key:'ins',icon:'📥',title:'Treasure Insertion',teaches:'Insert & shift elements right.'},
- {key:'del',icon:'🧹',title:'Corrupted Removal',teaches:'Delete & shift elements left.'},
- {key:'lin',icon:'🔦',title:'Search Dungeon',teaches:'Linear search — scan for the target.'},
- {key:'bin',icon:'⚡',title:'Binary Search Temple',teaches:'Halve a sorted range each guess.'},
- {key:'sort',icon:'⚔️',title:'Sorting Arena',teaches:'Wield a sorting blade to order the chaos.'},
+  {key:'idx',icon:'💎',title:'Crystal Collection',listType:'Static Array',teaches:'Indexing — grab the crystal at the exact index.',
+   demoCode:`// Array Indexing — O(1) time
+const arr = [10, 20, 30, 40, 50];
+const target = arr[2]; // retrieves 30
+console.log(target);`},
+  {key:'trav',icon:'🚶',title:'Traversal Adventure',listType:'Static Array',teaches:'Visit each cell left to right, in order.',
+   demoCode:`// Array Traversal — O(N) time
+const arr = [10, 20, 30, 40, 50];
+for (let i = 0; i < arr.length; i++) {
+  console.log(arr[i]);
+}`},
+  {key:'ins',icon:'📥',title:'Treasure Insertion',listType:'Static Array',teaches:'Insert & shift elements right.',
+   demoCode:`// Array Insertion — O(N) time (due to shifts)
+function insertAt(arr, index, element) {
+  for (let i = arr.length - 1; i > index; i--) {
+    arr[i] = arr[i - 1]; // shift right
+  }
+  arr[index] = element;
+}`},
+  {key:'del',icon:'🧹',title:'Corrupted Removal',listType:'Static Array',teaches:'Delete & shift elements left.',
+   demoCode:`// Array Deletion — O(N) time (due to shifts)
+function deleteAt(arr, index) {
+  for (let i = index; i < arr.length - 1; i++) {
+    arr[i] = arr[i + 1]; // shift left
+  }
+  arr[arr.length - 1] = 0; // clear last element
+}`},
+  {key:'lin',icon:'🔦',title:'Search Dungeon',listType:'Static Array',teaches:'Linear search — scan for the target.',
+   demoCode:`// Linear Search — O(N) time
+function linearSearch(arr, target) {
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i] === target) return i; // found index
+  }
+  return -1; // not found
+}`},
+  {key:'bin',icon:'⚡',title:'Binary Search Temple',listType:'Sorted Array',teaches:'Halve a sorted range each guess.',
+   demoCode:`// Binary Search — O(log N) time
+function binarySearch(arr, target) {
+  let low = 0, high = arr.length - 1;
+  while (low <= high) {
+    let mid = Math.floor((low + high) / 2);
+    if (arr[mid] === target) return mid;
+    if (arr[mid] < target) low = mid + 1;
+    else high = mid - 1;
+  }
+  return -1;
+}`},
+  {key:'sort',icon:'⚔️',title:'Sorting Arena',listType:'Unsorted Array',teaches:'Wield a sorting blade to order the chaos.',
+   demoCode:`// Bubble Sort — O(N^2) time
+function bubbleSort(arr) {
+  let n = arr.length;
+  for (let i = 0; i < n - 1; i++) {
+    for (let j = 0; j < n - i - 1; j++) {
+      if (arr[j] > arr[j + 1]) {
+        let temp = arr[j];
+        arr[j] = arr[j + 1];
+        arr[j + 1] = temp;
+      }
+    }
+  }
+}`}
 ];
 function playMission(id,key){
   id=+id;
@@ -2916,18 +2971,146 @@ function deleteNode(head, target) {
   return head;
 }`}
   ],
- 3:[{key:'g3a',icon:'🪨',title:'Falling Stones',teaches:'Push & pop in LIFO order.'},
-    {key:'g3b',icon:'🧮',title:'Postfix Forge',teaches:'Evaluate postfix expression step by step.'},
-    {key:'g3c',icon:'⬇️',title:'Stack Push Panic',teaches:'Push numbers onto the stack in the correct LIFO order.'},
-    {key:'g3d',icon:'⬆️',title:'Stack Pop Blitz',teaches:'Pop elements and predict the correct LIFO output.'}],
- 4:[{key:'g4a',icon:'🚦',title:'Traffic Control',teaches:'Serve cars FIFO at the junction.'},
-    {key:'g4b',icon:'⭐',title:'Priority Dispatch',teaches:'Highest priority leaves first.'},
-    {key:'g4c',icon:'📥',title:'Enqueue Parade',teaches:'Add items to the rear of the queue one by one.'},
-    {key:'g4d',icon:'📤',title:'Dequeue Rush',teaches:'Remove items from the front — pure FIFO order.'}],
- 5:[{key:'g5a',icon:'🌱',title:'Grow the BST',teaches:'Insert values into a binary search tree.'},
-    {key:'g5b',icon:'🚶',title:'Inorder Walk',teaches:'Traverse a BST in sorted order.'}],
- 6:[{key:'g6a',icon:'🌊',title:'BFS Wave',teaches:'Explore the galaxy level by level.'},
-    {key:'g6b',icon:'🕳️',title:'DFS Dive',teaches:'Plunge deep before backtracking.'}],
+  3:[
+    {key:'g3a',icon:'🪨',title:'Falling Stones',listType:'Stack (LIFO)',teaches:'Push & pop in LIFO order.',
+     demoCode:`// Stack — LIFO (Last In, First Out)
+class Stack {
+  constructor() { this.items = []; }
+  push(val) { this.items.push(val); }   // O(1)
+  pop()  { return this.items.pop(); }   // O(1)
+  peek() { return this.items[this.items.length-1]; }
+  isEmpty() { return this.items.length === 0; }
+}`},
+    {key:'g3b',icon:'🧮',title:'Postfix Forge',listType:'Stack (Postfix Evaluation)',teaches:'Evaluate postfix expression step by step.',
+     demoCode:`// Postfix Evaluation using Stack
+function evalPostfix(expr) {
+  const stack = [], tokens = expr.split(' ');
+  for (const t of tokens) {
+    if (!isNaN(t)) { stack.push(+t); }  // number → push
+    else {
+      const b = stack.pop(), a = stack.pop();
+      if (t==='+') stack.push(a+b);
+      if (t==='-') stack.push(a-b);
+      if (t==='*') stack.push(a*b);
+    }
+  }
+  return stack[0]; // final result
+}`},
+    {key:'g3c',icon:'⬇️',title:'Stack Push Panic',listType:'Stack (LIFO Push)',teaches:'Push numbers onto the stack in the correct LIFO order.',
+     demoCode:`// Push adds to the TOP of the stack
+const stack = [];
+stack.push(3);  // stack: [3]       top=3
+stack.push(7);  // stack: [3,7]     top=7
+stack.push(2);  // stack: [3,7,2]   top=2
+console.log(stack[stack.length-1]); // 2 (top)
+// Time: O(1) — constant time push`},
+    {key:'g3d',icon:'⬆️',title:'Stack Pop Blitz',listType:'Stack (LIFO Pop)',teaches:'Pop elements and predict the correct LIFO output.',
+     demoCode:`// Pop removes from the TOP (LIFO order)
+const stack = [3, 7, 2, 5]; // 5 is top
+stack.pop(); // returns 5 → stack:[3,7,2]
+stack.pop(); // returns 2 → stack:[3,7]
+stack.pop(); // returns 7 → stack:[3]
+stack.pop(); // returns 3 → stack:[]
+// Pop order is REVERSE of push order!`}
+  ],
+  4:[
+    {key:'g4b',icon:'⭐',title:'Priority Dispatch',listType:'Priority Queue (Max-Heap)',teaches:'Highest priority item always exits first.',
+     demoCode:`// Priority Queue — always removes max priority
+class MaxPriorityQueue {
+  constructor() { this.heap = []; }
+  enqueue(item, priority) {
+    this.heap.push({item, priority});
+    this.heap.sort((a,b) => b.priority - a.priority);
+  }
+  dequeue() { return this.heap.shift(); } // O(1)
+}
+const pq = new MaxPriorityQueue();
+pq.enqueue('Ambulance', 5);
+pq.enqueue('Car', 1);
+pq.dequeue(); // → Ambulance (priority 5)`},
+    {key:'g4c',icon:'📥',title:'Enqueue Parade',listType:'Queue (FIFO Enqueue)',teaches:'Add items to the rear of the queue one by one.',
+     demoCode:`// Queue — Enqueue adds to the REAR
+class Queue {
+  constructor() { this.items = []; }
+  enqueue(val) {
+    this.items.push(val); // add to rear → O(1)
+  }
+  get front() { return this.items[0]; }
+  get rear()  { return this.items[this.items.length-1]; }
+  get size()  { return this.items.length; }
+}
+const q = new Queue();
+q.enqueue('🍕'); // rear=🍕
+q.enqueue('🎸'); // rear=🎸, front=🍕`},
+    {key:'g4d',icon:'📤',title:'Dequeue Rush',listType:'Queue (FIFO Dequeue)',teaches:'Remove items from the front — pure FIFO order.',
+     demoCode:`// Queue — Dequeue removes from the FRONT
+class Queue {
+  constructor() { this.items = []; }
+  enqueue(val) { this.items.push(val); }
+  dequeue() {
+    if (this.isEmpty()) return null;
+    return this.items.shift(); // remove front → O(1)
+  }
+  isEmpty() { return this.items.length === 0; }
+}
+const q = new Queue();
+q.enqueue('A'); q.enqueue('B'); q.enqueue('C');
+q.dequeue(); // → 'A' (FIFO: first in = first out)`}
+  ],
+  5:[
+    {key:'g5a',icon:'🌱',title:'Grow the BST',listType:'Binary Search Tree',teaches:'Insert values into a binary search tree.',
+     demoCode:`// BST Insert — O(log n) average
+function insert(node, val) {
+  if (!node) return { val, left:null, right:null };
+  if (val < node.val)
+    node.left  = insert(node.left,  val); // go left
+  else
+    node.right = insert(node.right, val); // go right
+  return node;
+}
+// BST property: left < root < right (always)`},
+    {key:'g5b',icon:'🚶',title:'Inorder Walk',listType:'BST — Inorder Traversal',teaches:'Traverse a BST in sorted order.',
+     demoCode:`// Inorder Traversal — always gives sorted output!
+function inorder(node, result=[]) {
+  if (!node) return result;
+  inorder(node.left,  result); // 1. visit left
+  result.push(node.val);       // 2. visit root
+  inorder(node.right, result); // 3. visit right
+  return result;
+}
+// For BST {5,3,7}: inorder → [3, 5, 7] (sorted!)`}
+  ],
+  6:[
+    {key:'g6a',icon:'🌊',title:'BFS Wave',listType:'Graph — Breadth First Search',teaches:'Explore the galaxy level by level.',
+     demoCode:`// BFS — uses a Queue, explores level by level
+function bfs(graph, start) {
+  const visited = new Set([start]);
+  const queue   = [start];  // FIFO queue
+  const order   = [];
+  while (queue.length) {
+    const node = queue.shift(); // dequeue front
+    order.push(node);
+    for (const nb of graph[node]) {
+      if (!visited.has(nb)) {
+        visited.add(nb);
+        queue.push(nb); // enqueue neighbours
+      }
+    }
+  }
+  return order; // level-by-level order
+}`},
+    {key:'g6b',icon:'🕳️',title:'DFS Dive',listType:'Graph — Depth First Search',teaches:'Plunge deep before backtracking.',
+     demoCode:`// DFS — uses recursion (or a Stack), goes deep first
+function dfs(graph, node, visited=new Set()) {
+  if (visited.has(node)) return;
+  visited.add(node);
+  console.log(node); // process node
+  for (const nb of graph[node]) {
+    dfs(graph, nb, visited); // recurse deep
+  }
+}
+// DFS explores A→B→D before visiting C`}
+  ]
 };
 function genericMission(id,key){
   // World 2 — Linked List Forest
@@ -2941,7 +3124,6 @@ function genericMission(id,key){
   if(key==='g3c')return stackPushPanic(id,key);
   if(key==='g3d')return stackPopBlitz(id,key);
   // World 4 — Queue City
-  if(key==='g4a')return trafficFIFO(id,key);
   if(key==='g4b')return priorityDispatch(id,key);
   if(key==='g4c')return enqueueParade(id,key);
   if(key==='g4d')return dequeueRush(id,key);
@@ -4200,38 +4382,103 @@ function renderAchv(){
       return `<div class="achv ${got?'got':''}"><div class="ic">${got?a[1]:'🔒'}</div>
         <div><b>${a[2]}</b><p>${a[3]}</p></div></div>`;}).join('')}</div></div>`);
 }
-function renderLeaderboard(){
-  const myQuizTime=S.stats.totalQuizTime||0;
-  const myQuizzes=S.stats.quizzesCleared||0;
-  const me={name:S.name+' (you)',xp:S.xp,me:true,ava:S.avatar,time:myQuizTime>0?myQuizTime:9999,quizzes:myQuizzes};
-  const bots=[
-    {name:'Aarav',xp:4200,ava:'🤖',time:115.5,quizzes:15},
-    {name:'Vihaan',xp:3650,ava:'🦊',time:150.0,quizzes:12},
-    {name:'Aditya',xp:2980,ava:'🧙',time:160.0,quizzes:10},
-    {name:'Ananya',xp:2400,ava:'🐉',time:196.0,quizzes:8},
-    {name:'Diya',xp:1850,ava:'🦉',time:140.0,quizzes:7},
-    {name:'Kabir',xp:1200,ava:'🧑‍🚀',time:210.0,quizzes:5},
-    {name:'Arjun',xp:760,ava:'👾',time:90.0,quizzes:3}
+/* ========== REAL-TIME LEADERBOARD ========== */
+let _lbInterval = null;
+
+// Sync own score into shared localStorage pool
+function syncMyScore(){
+  const pool = JSON.parse(localStorage.getItem('dsa_lb_pool')||'{}');
+  const key  = S.googleId || S.name || 'player';
+  pool[key]  = {name:S.name, ava:S.avatar, xp:S.xp,
+                time: S.stats.totalQuizTime||9999,
+                quizzes: S.stats.quizzesCleared||0,
+                updated: Date.now()};
+  localStorage.setItem('dsa_lb_pool', JSON.stringify(pool));
+}
+
+function buildLbRows(){
+  const pool  = JSON.parse(localStorage.getItem('dsa_lb_pool')||'{}');
+  const myKey = S.googleId || S.name || 'player';
+  const bots  = [
+    {name:'Aarav',   xp:4200,ava:'🤖',time:115.5,quizzes:15},
+    {name:'Vihaan',  xp:3650,ava:'🦊',time:150.0,quizzes:12},
+    {name:'Aditya',  xp:2980,ava:'🧙',time:160.0,quizzes:10},
+    {name:'Ananya',  xp:2400,ava:'🐉',time:196.0,quizzes:8},
+    {name:'Diya',    xp:1850,ava:'🦉',time:140.0,quizzes:7},
+    {name:'Kabir',   xp:1200,ava:'🧑‍🚀',time:210.0,quizzes:5},
+    {name:'Arjun',   xp:760, ava:'👾',time:90.0, quizzes:3}
   ];
-  const all=[...bots,me].sort((a,b)=>a.time-b.time);
-  screen('lb',`<div class="wrap"><button class="btn ghost sm back" onclick="go('home')">← Hub</button>
-    <div style="text-align:center"><div class="eyebrow">Glory</div><div class="h2">🏆 Global Leaderboard</div>
-    <p class="dim">Ranked by total quiz/boss solve time — speed is everything!</p></div>
-    <div style="max-width:700px;margin:18px auto">
-    ${all.map((r,i)=>`<div class="lb-row ${r.me?'me':''} ${i===0?'top1':i===1?'top2':i===2?'top3':''}">
+  const poolArr = Object.entries(pool).map(([k,v])=>({...v, me: k===myKey}));
+  const botFiltered = bots.filter(b=>!poolArr.find(p=>p.name===b.name));
+  return [...botFiltered,...poolArr].sort((a,b)=>a.time-b.time);
+}
+
+function refreshLbRows(){
+  syncMyScore();
+  const all  = buildLbRows();
+  const body = document.getElementById('lb-body');
+  const ts   = document.getElementById('lb-ts');
+  if(!body) return;
+  body.innerHTML = all.map((r,i)=>`
+    <div class="lb-row ${r.me?'me':''} ${i===0?'top1':i===1?'top2':i===2?'top3':''}" style="animation:lbFadeIn 0.3s ease">
       <div class="lb-rank">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</div>
-      <div class="hud-ava" style="width:38px;height:38px;font-size:20px">${r.ava}</div>
-      <div class="lb-name">${r.name}</div>
+      <div class="hud-ava" style="width:38px;height:38px;font-size:20px">${r.ava||'👤'}</div>
+      <div class="lb-name">${r.name}${r.me?' <span style="font-size:10px;color:var(--gold)">(you)</span>':''}</div>
       <div class="lb-time">⚡ ${r.time<9999?r.time.toFixed(1)+'s':'—'}</div>
-      <div class="lb-xp">${r.xp.toLocaleString()} XP</div></div>`).join('')}
+      <div class="lb-xp">${(r.xp||0).toLocaleString()} XP</div>
+    </div>`).join('');
+  if(ts) ts.textContent = 'Updated ' + new Date().toLocaleTimeString();
+}
+
+function renderLeaderboard(){
+  syncMyScore();
+  const myTime   = S.stats.totalQuizTime||0;
+  const myQuizzes= S.stats.quizzesCleared||0;
+  if(_lbInterval) clearInterval(_lbInterval);
+
+  screen('lb',`<div class="wrap">
+    <button class="btn ghost sm back" onclick="go('home');if(window._lbInterval)clearInterval(window._lbInterval);">← Hub</button>
+    <div style="text-align:center;margin-bottom:4px">
+      <div class="eyebrow">Glory</div>
+      <div class="h2">🏆 Global Leaderboard</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:6px">
+        <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,60,60,0.12);border:1px solid rgba(255,60,60,0.3);border-radius:20px;padding:2px 10px;font-family:var(--mono);font-size:11px;color:#ff5c5c">
+          <span style="width:7px;height:7px;border-radius:50%;background:#ff4444;animation:livePulse 1s infinite"></span>
+          LIVE
+        </span>
+        <span id="lb-ts" style="font-family:var(--mono);font-size:10px;color:var(--dim)"></span>
+      </div>
+      <p class="dim" style="margin-top:6px">Ranked by quiz/boss solve time — auto-refreshes every 10 seconds</p>
     </div>
+    <div style="max-width:700px;margin:14px auto" id="lb-body"></div>
     <div class="glass" style="max-width:700px;margin:14px auto;padding:16px;display:flex;gap:20px;justify-content:center;flex-wrap:wrap;text-align:center">
-      <div><div class="dim" style="font-family:var(--mono);font-size:10px;letter-spacing:2px">YOUR TOTAL QUIZ TIME</div><div style="font-family:var(--display);font-size:20px;color:var(--blue)">${myQuizTime.toFixed(1)}s</div></div>
-      <div><div class="dim" style="font-family:var(--mono);font-size:10px;letter-spacing:2px">QUIZZES & BOSSES CLEARED</div><div style="font-family:var(--display);font-size:20px;color:var(--green)">${myQuizzes}</div></div>
-      <div><div class="dim" style="font-family:var(--mono);font-size:10px;letter-spacing:2px">TOTAL SOLVE TIME</div><div style="font-family:var(--display);font-size:20px;color:var(--gold)">${myQuizTime>0?myQuizTime.toFixed(1)+'s':'—'}</div></div>
+      <div><div class="dim" style="font-family:var(--mono);font-size:10px;letter-spacing:2px">YOUR QUIZ TIME</div><div style="font-family:var(--display);font-size:20px;color:var(--blue)">${myTime>0?myTime.toFixed(1)+'s':'—'}</div></div>
+      <div><div class="dim" style="font-family:var(--mono);font-size:10px;letter-spacing:2px">QUIZZES CLEARED</div><div style="font-family:var(--display);font-size:20px;color:var(--green)">${myQuizzes}</div></div>
+      <div><div class="dim" style="font-family:var(--mono);font-size:10px;letter-spacing:2px">YOUR XP</div><div style="font-family:var(--display);font-size:20px;color:var(--gold)">${S.xp.toLocaleString()}</div></div>
     </div>
-    <p class="dim" style="text-align:center;font-size:12px;margin-top:10px">Pass quizzes and defeat bosses faster to climb the rankings. Speed is the ultimate metric!</p>
+    <p class="dim" style="text-align:center;font-size:12px;margin-top:8px">Complete quizzes faster to rise. Your score updates live across all open windows!</p>
   </div>`);
+
+  refreshLbRows();
+
+  _lbInterval = setInterval(()=>{
+    if(document.getElementById('lb-body')) refreshLbRows();
+    else clearInterval(_lbInterval);
+  }, 10000);
+
+  if(typeof BroadcastChannel !== 'undefined'){
+    const bc = new BroadcastChannel('dsa_lb');
+    bc.onmessage = ()=>{ if(document.getElementById('lb-body')) refreshLbRows(); };
+    window._lbChannel = bc;
+  }
+}
+
+// Broadcast score update whenever XP or quiz time changes
+function broadcastScore(){
+  syncMyScore();
+  if(typeof BroadcastChannel !== 'undefined'){
+    try{ new BroadcastChannel('dsa_lb').postMessage('update'); }catch(e){}
+  }
 }
 
 function renderPowers(){
