@@ -2926,18 +2926,24 @@ function deleteNode(head, target) {
     {key:'g6b',icon:'🕳️',title:'DFS Dive',teaches:'Plunge deep before backtracking.'}],
 };
 function genericMission(id,key){
-  // World 2 — Linked List Forest interactive games
+  // World 2 — Linked List Forest
   if(key==='g2a')return wireNodes(id,key);
   if(key==='g2b')return cycleHunt(id,key);
   if(key==='g2c')return reverseList(id,key);
   if(key==='g2d')return deleteNode(id,key);
-  // World 3 — Stack
+  // World 3 — Stack Volcano
   if(key==='g3a')return stackStones(id,key);
-  // World 4 — Queue
+  if(key==='g3b')return postfixForge(id,key);
+  // World 4 — Queue City
   if(key==='g4a')return trafficFIFO(id,key);
-  // World 5 — BST
+  if(key==='g4b')return priorityDispatch(id,key);
+  // World 5 — Tree Kingdom
   if(key==='g5a')return growBST(id,key);
-  // default: concept quiz challenge for remaining missions
+  if(key==='g5b')return inorderWalk(id,key);
+  // World 6 — Graph Galaxy
+  if(key==='g6a')return bfsWave(id,key);
+  if(key==='g6b')return dfsDive(id,key);
+  // safety fallback
   conceptChallenge(id,key);
 }
 /* ======================= LINKED LIST FOREST GAMES (World 2) ======================= */
@@ -3237,6 +3243,267 @@ function trafficFIFO(id,key){
           document.getElementById('fb').textContent='✗ Violation! Queue rule is FIFO (First In, First Out). Only the front car (index 0) can exit.';}
       };l.appendChild(d);});}
 }
+/* ======================= WORLD 3 — STACK VOLCANO ======================= */
+
+/* g3b — Postfix Forge: evaluate postfix expression using a visual stack */
+function postfixForge(id,key){
+  // Generate a valid postfix expression: a b + c * style
+  const a=2+Math.floor(Math.random()*6), b=2+Math.floor(Math.random()*6), c=2+Math.floor(Math.random()*5);
+  const tokens = [String(a), String(b), '+', String(c), '*'];
+  const answer = (a+b)*c;
+  let ti=0, stack=[];
+  arenaShell('Postfix Forge','Evaluate the postfix expression using the stack — push numbers, pop & compute on operators.',`
+    <div class="prompt" id="pr">Expression: <b style="font-family:var(--mono);color:var(--gold)">${tokens.join('  ')}</b></div>
+    <div style="display:flex;gap:20px;align-items:flex-start;justify-content:center;margin:12px 0">
+      <div style="text-align:center">
+        <div class="eyebrow" style="font-size:10px">Tokens</div>
+        <div id="tok-row" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:6px"></div>
+      </div>
+      <div style="text-align:center">
+        <div class="eyebrow" style="font-size:10px">Stack (top→)</div>
+        <div id="stk-row" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;min-height:44px;margin-top:6px"></div>
+      </div>
+    </div>
+    <div class="controls"><button class="btn sm green" id="nxt">▶ Process Next Token</button></div>
+    <div class="feedback" id="fb"></div>`);
+  function draw(){
+    const tr=document.getElementById('tok-row');
+    tr.innerHTML=tokens.map((t,i)=>`<div class="acell"><div class="box" style="border-color:${i<ti?'var(--dim)':i===ti?'var(--gold)':'var(--line)'};font-size:15px">${t}</div></div>`).join('');
+    const sr=document.getElementById('stk-row');
+    sr.innerHTML=stack.length?stack.map(v=>`<div class="acell"><div class="box" style="border-color:var(--green)">${v}</div></div>`).join(''):'<span class="dim">empty</span>';
+  }
+  draw();
+  document.getElementById('nxt').onclick=()=>{
+    if(ti>=tokens.length) return;
+    const t=tokens[ti++];
+    const fb=document.getElementById('fb');
+    if(!isNaN(t)){
+      highlightCodeLine(2);
+      stack.push(Number(t));
+      fb.className='feedback win';
+      fb.textContent=`✓ Pushed ${t} → stack: [${stack.join(', ')}]. Numbers always go onto the stack.`;
+    } else {
+      highlightCodeLine(4);
+      const b2=stack.pop(), a2=stack.pop();
+      const res = t==='+'?a2+b2:t==='-'?a2-b2:t==='*'?a2*b2:Math.floor(a2/b2);
+      stack.push(res);
+      fb.className='feedback win';
+      fb.textContent=`✓ Operator '${t}': popped ${a2} and ${b2}, computed ${a2}${t}${b2}=${res}, pushed result. Stack: [${stack.join(', ')}].`;
+    }
+    draw();
+    if(ti>=tokens.length){
+      document.getElementById('nxt').disabled=true;
+      setTimeout(()=>{
+        fb.className='feedback win';
+        fb.textContent=`🏆 Final answer: ${stack[0]} (= ${answer}). Postfix evaluation uses a stack — no parentheses needed!`;
+        setTimeout(()=>clearMission(id,key,90,45),1500);
+      },600);
+    }
+  };
+}
+
+/* ======================= WORLD 4 — QUEUE CITY ======================= */
+
+/* g4b — Priority Dispatch: always dequeue the HIGHEST priority item */
+function priorityDispatch(id,key){
+  const EMOJIS=['🚑','🚒','🚓','🚐','🚗'];
+  const labels=['Ambulance','Fire Truck','Police','Bus','Car'];
+  let items=[...Array(5)].map((_,i)=>({label:labels[i],icon:EMOJIS[i],pri:5-i}));
+  // shuffle
+  for(let i=items.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[items[i],items[j]]=[items[j],items[i]];}
+  let mistakes=0;
+  arenaShell('Priority Dispatch','Always dispatch the vehicle with the HIGHEST priority number first.',`
+    <div class="prompt">Click the <b>highest priority</b> vehicle to dispatch it first.</div>
+    <div id="pq" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:14px 0"></div>
+    <div class="feedback" id="fb"></div>`);
+  function draw(){
+    const pq=document.getElementById('pq');
+    pq.innerHTML='';
+    items.forEach((it,i)=>{
+      const d=document.createElement('div');
+      d.style.cssText='display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer';
+      d.innerHTML=`<div class="box" style="font-size:22px;padding:12px;border-color:var(--gold)">${it.icon}</div>
+        <div style="font-size:11px;font-family:var(--mono);color:var(--txt)">${it.label}</div>
+        <div style="font-size:10px;color:var(--blue)">Priority: ${it.pri}</div>`;
+      d.onclick=()=>{
+        const maxPri=Math.max(...items.map(x=>x.pri));
+        if(it.pri===maxPri){
+          highlightCodeLine(4);
+          items.splice(i,1);
+          draw();
+          const fb=document.getElementById('fb');
+          fb.className='feedback win';
+          fb.textContent=`✓ Dispatched ${it.label} (priority ${it.pri}) — highest priority exits first in a Priority Queue.`;
+          if(items.length===0){
+            setTimeout(()=>clearMission(id,key,85,42),1200);
+          }
+        } else {
+          mistakes++; shakeScreen();
+          document.getElementById('fb').className='feedback lose';
+          document.getElementById('fb').textContent=`✗ Not the highest! Priority Queue always serves the MAX priority (${maxPri}) first. Mistakes: ${mistakes}.`;
+        }
+      };
+      document.getElementById('pq').appendChild(d);
+    });
+  }
+  draw();
+}
+
+/* ======================= WORLD 5 — TREE KINGDOM ======================= */
+
+/* g5b — Inorder Walk: click BST nodes in left→root→right order */
+function inorderWalk(id,key){
+  // Build a simple fixed BST so we can show it nicely
+  const vals=[5,3,7,2,4,6,8];
+  // BST structure: 5 is root, left subtree 3(2,4), right subtree 7(6,8)
+  const tree={v:5,l:{v:3,l:{v:2,l:null,r:null},r:{v:4,l:null,r:null}},r:{v:7,l:{v:6,l:null,r:null},r:{v:8,l:null,r:null}}};
+  const correct=[2,3,4,5,6,7,8]; // inorder sequence
+  let clicked=[], mistakes=0;
+  arenaShell('Inorder Walk','Click BST nodes in Inorder order: Left → Root → Right.',`
+    <div class="prompt">Inorder traversal visits: <b style="color:var(--gold)">Left → Root → Right</b>. Click nodes in that order.</div>
+    <div id="bst-disp" style="display:flex;justify-content:center;margin:14px 0"></div>
+    <div style="font-family:var(--mono);font-size:12px;text-align:center;color:var(--dim);margin-bottom:8px">Your order so far: <span id="seq" style="color:var(--green)">—</span></div>
+    <div class="feedback" id="fb"></div>`);
+  function renderTree(node,depth=0){
+    if(!node)return '<div style="width:44px"></div>';
+    const isDone=clicked.includes(node.v);
+    const isNext=!isDone && node.v===correct[clicked.length];
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+      <div class="acell" onclick="walkClick(${node.v})">
+        <div class="box" style="cursor:pointer;border-color:${isDone?'var(--green)':isNext?'var(--gold)':'var(--line)'};background:${isDone?'rgba(0,255,128,0.08)':'transparent'}">${node.v}</div>
+      </div>
+      <div style="display:flex;gap:8px">${renderTree(node.l,depth+1)}${renderTree(node.r,depth+1)}</div>
+    </div>`;
+  }
+  window.walkClick=function(v){
+    const fb=document.getElementById('fb');
+    if(v===correct[clicked.length]){
+      highlightCodeLine(4);
+      clicked.push(v);
+      document.getElementById('seq').textContent=clicked.join(' → ');
+      document.getElementById('bst-disp').innerHTML=renderTree(tree);
+      fb.className='feedback win';
+      fb.textContent=`✓ Visited ${v}. Inorder rule: always go leftmost first, then root, then right.`;
+      if(clicked.length===correct.length){
+        setTimeout(()=>{
+          fb.textContent='🏆 Perfect inorder traversal! Result is always sorted for a BST.';
+          setTimeout(()=>clearMission(id,key,90,45),1200);
+        },500);
+      }
+    } else if(!clicked.includes(v)){
+      mistakes++; shakeScreen();
+      fb.className='feedback lose';
+      fb.textContent=`✗ Wrong! Expected ${correct[clicked.length]} next. Remember: go Left first, then Root, then Right. Mistakes: ${mistakes}.`;
+    }
+  };
+  document.getElementById('bst-disp').innerHTML=renderTree(tree);
+}
+
+/* ======================= WORLD 6 — GRAPH GALAXY ======================= */
+
+/* g6a — BFS Wave: step through BFS level by level */
+function bfsWave(id,key){
+  // Simple graph adjacency list (6 nodes)
+  const graph={A:['B','C'],B:['A','D','E'],C:['A','F'],D:['B'],E:['B'],F:['C']};
+  const nodes=Object.keys(graph);
+  const start='A';
+  let visited=[], queue=[start], level=0, steps=0;
+  visited.push(start);
+  arenaShell('BFS Wave','Explore the graph level by level — click Step to advance the BFS frontier.',`
+    <div class="prompt">Starting from <b>A</b>. BFS explores all neighbours before going deeper (like a wave).</div>
+    <div id="bfs-graph" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:14px 0"></div>
+    <div style="font-family:var(--mono);font-size:12px;text-align:center;color:var(--dim);margin-bottom:6px">Queue: <span id="bfs-q" style="color:var(--gold)">[ A ]</span> &nbsp;|&nbsp; Visited: <span id="bfs-v" style="color:var(--green)">A</span></div>
+    <div class="controls"><button class="btn sm" id="bfs-step">⚡ BFS Step</button></div>
+    <div class="feedback" id="fb"></div>`);
+  function drawBFS(){
+    const g=document.getElementById('bfs-graph');
+    g.innerHTML=nodes.map(n=>`
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+        <div class="box" style="font-size:18px;border-color:${visited.includes(n)?'var(--green)':queue.includes(n)?'var(--gold)':'var(--line)'};background:${visited.includes(n)?'rgba(0,255,128,0.08)':queue.includes(n)?'rgba(255,215,0,0.08)':'transparent'}">${n}</div>
+        <div style="font-size:10px;font-family:var(--mono);color:var(--dim)">${graph[n].join(',')}</div>
+      </div>`).join('');
+    document.getElementById('bfs-q').textContent=queue.length?'[ '+queue.join(', ')+' ]':'empty';
+    document.getElementById('bfs-v').textContent=visited.join(' → ');
+  }
+  drawBFS();
+  document.getElementById('bfs-step').onclick=()=>{
+    if(queue.length===0){return;}
+    highlightCodeLine(7);
+    const curr=queue.shift();
+    steps++;
+    const fb=document.getElementById('fb');
+    const neighbours=graph[curr].filter(n=>!visited.includes(n));
+    neighbours.forEach(n=>{visited.push(n);queue.push(n);});
+    drawBFS();
+    fb.className='feedback win';
+    if(neighbours.length>0)
+      fb.textContent=`✓ Dequeued ${curr} → Added neighbours: ${neighbours.join(', ')} to queue. BFS explores level by level.`;
+    else
+      fb.textContent=`✓ Dequeued ${curr} — all neighbours already visited. BFS continues.`;
+    if(queue.length===0){
+      document.getElementById('bfs-step').disabled=true;
+      setTimeout(()=>{
+        fb.textContent=`🏆 BFS Complete! Visited order: ${visited.join(' → ')}. Time: O(V+E).`;
+        setTimeout(()=>clearMission(id,key,90,45),1500);
+      },600);
+    }
+  };
+}
+
+/* g6b — DFS Dive: click nodes to perform DFS — must go deep before siblings */
+function dfsDive(id,key){
+  const graph={A:['B','C'],B:['D','E'],C:['F'],D:[],E:[],F:[]};
+  const nodes=Object.keys(graph);
+  // Correct DFS from A (depth-first): A→B→D→E→C→F
+  const correct=['A','B','D','E','C','F'];
+  let visited=[], mistakes=0;
+  arenaShell('DFS Dive','Click nodes in Depth-First order — go as deep as possible before backtracking.',`
+    <div class="prompt">Start at <b>A</b>. DFS rule: always go <b>deeper</b> before visiting siblings.</div>
+    <div id="dfs-graph" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:14px 0"></div>
+    <div style="font-family:var(--mono);font-size:12px;text-align:center;color:var(--dim);margin-bottom:6px">DFS Path: <span id="dfs-path" style="color:var(--green)">—</span></div>
+    <div style="font-family:var(--mono);font-size:11px;text-align:center;color:var(--dim);margin-bottom:8px">Next expected: <span id="dfs-next" style="color:var(--gold)">${correct[0]}</span></div>
+    <div class="feedback" id="fb"></div>`);
+  function drawDFS(){
+    const g=document.getElementById('dfs-graph');
+    g.innerHTML=nodes.map(n=>{
+      const isDone=visited.includes(n);
+      const isNext=!isDone&&n===correct[visited.length];
+      return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px" onclick="dfsClick('${n}')">
+        <div class="box" style="cursor:pointer;font-size:18px;border-color:${isDone?'var(--green)':isNext?'var(--gold)':'var(--line)'}">${n}</div>
+        <div style="font-size:10px;font-family:var(--mono);color:var(--dim)">[${graph[n].join(',')||'leaf'}]</div>
+      </div>`;
+    }).join('');
+    document.getElementById('dfs-path').textContent=visited.length?visited.join(' → '):'—';
+    document.getElementById('dfs-next').textContent=correct[visited.length]||'✓ done';
+  }
+  window.dfsClick=function(n){
+    const fb=document.getElementById('fb');
+    if(visited.includes(n)){
+      fb.className='feedback lose';
+      fb.textContent=`✗ ${n} already visited! DFS never revisits nodes.`;
+      return;
+    }
+    if(n===correct[visited.length]){
+      highlightCodeLine(5);
+      visited.push(n);
+      drawDFS();
+      fb.className='feedback win';
+      fb.textContent=`✓ Visited ${n}. DFS goes deep — it explores a full branch before backtracking to siblings.`;
+      if(visited.length===correct.length){
+        setTimeout(()=>{
+          fb.textContent=`🏆 Perfect DFS! Path: ${visited.join(' → ')}. Time: O(V+E). Uses a stack (or recursion) internally.`;
+          setTimeout(()=>clearMission(id,key,90,45),1400);
+        },500);
+      }
+    } else {
+      mistakes++; shakeScreen();
+      fb.className='feedback lose';
+      fb.textContent=`✗ Wrong! DFS must visit ${correct[visited.length]} next — it goes deeper into the current branch first. Mistakes: ${mistakes}.`;
+    }
+  };
+  drawDFS();
+}
+
 /* Concept challenge fallback — 3 scenario questions */
 function conceptChallenge(id,key){
   const qs=questionBank(id).slice(0,3); let i=0,score=0;
