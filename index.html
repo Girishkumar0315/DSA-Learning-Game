@@ -2355,7 +2355,7 @@ function roadmapHTML(id){
   return `<div class="eyebrow" style="text-align:left;margin-bottom:8px">Hologram Visualizer</div>
   <div class="hologram-visualizer" id="road-hologram-${id}"></div>
   <div class="road-header-img" style="width:100%;max-height:120px;overflow:hidden;border-radius:12px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.1);position:relative">
-    <img src="assets/world_${id}.png" style="width:100%;height:100%;object-fit:cover;filter:brightness(0.85);display:block" />
+    <img src="assets/world_${id}.png" style="width:100%;height:100%;object-fit:cover;filter:brightness(0.85);display:block" alt="World ${id}" onerror="this.style.display='none'" />
     <div style="position:absolute;inset:0;background:linear-gradient(to top, var(--void), transparent);pointer-events:none"></div>
   </div>
   <div class="road">${r.map((s,i)=>{
@@ -2375,7 +2375,7 @@ window.learnStep=function(id){
   const w=S.worlds[id], r=ROADMAPS[id], s=r[w.roadmap];
   modal(`<div style="display:flex;flex-direction:column;gap:12px;max-width:480px;align-items:center">
     <div class="road-lesson-img" style="width:100%;height:150px;overflow:hidden;border-radius:10px;border:1px solid rgba(255,255,255,0.08);position:relative">
-      <img src="assets/world_${id}.png" style="width:100%;height:100%;object-fit:cover;display:block" />
+      <img src="assets/world_${id}.png" style="width:100%;height:100%;object-fit:cover;display:block" alt="World ${id}" onerror="this.style.display='none'" />
       <div class="road-pulsing-glow" style="position:absolute;inset:0;animation:pulseGlow 2s infinite alternate"></div>
     </div>
     <div class="eyebrow">Lesson ${w.roadmap+1}/${r.length}</div>
@@ -2402,10 +2402,18 @@ function missionsHTML(id){
     const cleared=w.missions[m.key];
     const prevOk=i===0||w.missions[ms[i-1].key];
     const locked=!prevOk;
+    // Build type badge + demo code block for World 2 (Linked List Forest)
+    const typeBadge = m.listType ? `<div style="font-family:var(--mono);font-size:10px;color:var(--blue);background:rgba(45,212,255,0.08);border:1px solid rgba(45,212,255,0.2);border-radius:4px;padding:2px 7px;display:inline-block;margin-bottom:6px;letter-spacing:0.5px">🔗 ${m.listType}</div>` : '';
+    const codeBlock = m.demoCode && !locked ? `<details style="margin-top:8px;text-align:left" onclick="event.stopPropagation()">
+      <summary style="cursor:pointer;font-family:var(--mono);font-size:11px;color:var(--gold);outline:none">📄 Show Demo Code</summary>
+      <pre style="margin:6px 0 0;padding:10px;background:rgba(0,0,0,0.4);border-radius:6px;font-size:11px;color:#b5f3b5;overflow-x:auto;text-align:left;line-height:1.5;border:1px solid rgba(255,255,255,0.06)">${m.demoCode.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+    </details>` : '';
     return `<div class="mcard ${cleared?'cleared':''} ${locked?'locked':''}"
       onclick="${locked?'':`playMission('${id}','${m.key}')`}">
       <div class="mi">${m.icon}</div>
+      ${typeBadge}
       <h4>${m.title}</h4><p>${m.teaches}</p>
+      ${codeBlock}
       <span class="badge ${cleared?'ok':locked?'lock':''}">${cleared?'✓ cleared':locked?'locked':'play ▶'}</span>
     </div>`;}).join('')}</div>`;
 }
@@ -2841,10 +2849,73 @@ function genSteps(algo,a){
    Each non-array world gets one interactive signature mini-game that teaches a
    core operation, then the boss + quiz carry the rest. */
 const GENERIC_MISSIONS={
- 2:[{key:'g2a',icon:'🔗',title:'Wire the Nodes',teaches:'Click nodes left-to-right to chain pointers together.'},
-    {key:'g2b',icon:'🔁',title:'Cycle Hunt',teaches:'Find which node creates the cycle in the list.'},
-    {key:'g2c',icon:'🔄',title:'Reverse the Chain',teaches:'Reverse the linked list by re-wiring pointers one by one.'},
-    {key:'g2d',icon:'🗡️',title:'Delete the Node',teaches:'Remove a node by re-pointing its predecessor.'}],
+ 2:[
+    {key:'g2a',icon:'🔗',title:'Wire the Nodes',
+     listType:'Singly Linked List',
+     teaches:'Click nodes left-to-right to chain next pointers together.',
+     demoCode:`// Singly Linked List — Node structure
+class Node {
+  constructor(val) {
+    this.val  = val;   // data stored
+    this.next = null;  // pointer to next node
+  }
+}
+// Wire: head → A → B → C → null
+const A = new Node(1);
+const B = new Node(2);
+const C = new Node(3);
+A.next = B;  // chain A to B
+B.next = C;  // chain B to C
+// C.next = null (default)`},
+    {key:'g2b',icon:'🔁',title:'Cycle Hunt',
+     listType:'Circular / Singly Linked List',
+     teaches:'Find which node creates the cycle using Floyd\'s algorithm.',
+     demoCode:`// Floyd's Cycle Detection (Tortoise & Hare)
+function hasCycle(head) {
+  let slow = head; // tortoise — 1 step
+  let fast = head; // hare     — 2 steps
+  while (fast && fast.next) {
+    slow = slow.next;
+    fast = fast.next.next;
+    if (slow === fast) return true; // cycle!
+  }
+  return false; // no cycle
+}`},
+    {key:'g2c',icon:'🔄',title:'Reverse the Chain',
+     listType:'Singly Linked List',
+     teaches:'Reverse the list by re-wiring prev/curr/next pointers.',
+     demoCode:`// Reverse a Singly Linked List — O(n)
+function reverse(head) {
+  let prev = null;
+  let curr = head;
+  while (curr) {
+    let next  = curr.next; // save next
+    curr.next = prev;      // flip pointer
+    prev      = curr;      // move prev
+    curr      = next;      // move curr
+  }
+  return prev; // new head
+}`},
+    {key:'g2d',icon:'🗡️',title:'Delete the Node',
+     listType:'Singly Linked List',
+     teaches:'Remove a node by updating its predecessor\'s next pointer.',
+     demoCode:`// Delete a node by value — O(n)
+function deleteNode(head, target) {
+  if (!head) return null;
+  if (head.val === target)
+    return head.next; // remove head
+  let curr = head;
+  while (curr.next) {
+    if (curr.next.val === target) {
+      // skip target node
+      curr.next = curr.next.next;
+      return head;
+    }
+    curr = curr.next;
+  }
+  return head;
+}`}
+  ],
  3:[{key:'g3a',icon:'🪨',title:'Falling Stones',teaches:'Push & pop in LIFO order.'},
     {key:'g3b',icon:'🧮',title:'Postfix Forge',teaches:'Evaluate a postfix expression with a stack.'}],
  4:[{key:'g4a',icon:'🚦',title:'Traffic Control',teaches:'Serve cars FIFO at the junction.'},
